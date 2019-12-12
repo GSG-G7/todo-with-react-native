@@ -17,6 +17,7 @@ class Form extends React.Component {
       email: "",
       password: "",
     },
+    error: '',
     isLoged: true,
   }
   async componentDidMount () {
@@ -29,7 +30,9 @@ class Form extends React.Component {
     }
   }
   static navigationOptions = {
-    title: "Enter Page"
+    title: "Enter Page",
+    headerLeft: null
+
   };
 
   handleButton = async () => {
@@ -43,7 +46,6 @@ class Form extends React.Component {
   }
   } = this;
   try {
-    console.log(navigate);
     if (form === "login") {
       const { user: { uid }} = await firebase.auth().signInWithEmailAndPassword(email, password);
       await AsyncStorage.setItem("userId", uid)
@@ -55,18 +57,19 @@ class Form extends React.Component {
       });
     }    
   } catch (error) {
-    console.log(error.message);
+    this.setState({ error })
   }
 }
 handleEmail = (text) => this.setState(prev => ({ input: { ...prev.input, email: text }}));
 handlePassword = (text) => this.setState(prev => ({input: { ...prev.input,password: text }}));
 
 
-  render(){    
+  render(){
     const { 
       state: {
         input: { email, password },
         isLoged,
+        error
       },
       handleButton,
       handleEmail,
@@ -84,6 +87,7 @@ handlePassword = (text) => this.setState(prev => ({input: { ...prev.input,passwo
     return (
     <>
       {!isLoged&&<SafeAreaView style={{margin: 25, flex: 1}}>
+        <Text>{error&&<Text>{ error.message }</Text>}</Text>
         <View style={{ alignItems :"center", padding: 5, marginTop: 100}}>
         <TextInput style={styles.text}
           placeholder="Email"

@@ -6,82 +6,96 @@ import {
   View,
   TextInput,
   Text,
-  Button,
   AsyncStorage,
-  FlatList,
   TouchableOpacity
 } from 'react-native';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import firebase from '../firebase';
 class Todos extends React.Component {
   static navigationOptions = {
     title: 'Todos',
+    headerLeft: null
   };
   state = {
     todos: [1, 2],
     text: '',
     isEditable: false,
     index: 0,
+    userId: -1,
     isLoged: false,
   }
-  async componentDidMount(){
+  getDataFromFireBase = (isEditable, index) => {
+    const db = firebase.firestore();
     try {
-      let todos = await AsyncStorage.getItem('TODO');
-      let userId = await AsyncStorage.getItem('userId');
-      if (userId) {
-        this.setState({ isLoged: true})
+      let todos = [];
+      db.collection("todos").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            todos = [...todos, {id: doc.id ,...doc.data()}];
+        });
+        this.setState(() => {
+          if (index === -1) {
+            return ({ todos, text: "", isEditable, index })
+          }
+          return ({ todos, text: "" })
+        })
+    })
+      } catch (error) {
+        console.log(error);
       }
-        todos = JSON.parse(todos);
-        this.setState({todos})
+  }
+  componentDidMount(){
+    try {
+      let userId = AsyncStorage.getItem('userId');
+      const db = firebase.firestore();
+      let todos = [];
+      db.collection("todos").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            todos = [...todos, {id: doc.id ,...doc.data()}];
+        });
+        return todos;
+    }).then((todos) => {
+      if (userId) {
+        this.setState({ isLoged: true, userId, todos })
+      }
+    });
       } catch (error) {
       console.log(error);
     }
   }
 
     handleClickAdd = async () => {
+      const db = firebase.firestore();
+      const uid = await AsyncStorage.getItem('userId');
       const { text } = this.state;
-      if (text) {  
-        let todos = await AsyncStorage.getItem('TODO');
-        todos = JSON.parse(todos);
-        todos = [text, ...todos];
-        this.setState({todos, text: ''});
-        todos = JSON.stringify(todos);
-        await AsyncStorage.setItem("TODO", todos); 
+      await db.collection("todos").add({ text, uid })
+      this.getDataFromFireBase();
       }
+    
+    handleDelete = async (id) => {
+      const db = firebase.firestore();
+      db.collection("todos").doc(id).delete().then(() => {
+        console.log("Document successfully deleted!");
+        this.getDataFromFireBase();
+      })
     }
 
-    handleDelete = async (index) => {
-      let todos = await AsyncStorage.getItem('TODO');
-      todos = JSON.parse(todos);
-      todos.splice(index, 1);
-      this.setState({ todos });
-      todos = JSON.stringify(todos);
-      await AsyncStorage.setItem('TODO', todos);
-    }
-
-    handleEdit = async (index) => {
-      let todos = await AsyncStorage.getItem('TODO');
-      todos = JSON.parse(todos);
+    handleEdit = async (id) => {
+      const db = firebase.firestore();
       const { text } = this.state;
-      todos[index] = text;
-      this.setState({ todos, text: '', isEditable: false, index: -1 });
-      todos = JSON.stringify(todos);
-      await AsyncStorage.setItem('TODO', todos);
+      db.collection("todos").doc(id).update({ text }).then(() => {
+        console.log("Document successfully deleted!");
+        this.getDataFromFireBase(false, -1);
+        AsyncStorage.removeItem('TODO');
+      })
+
     }
 
     render(){    
       const { 
         state: {
-          text, todos, isEditable, index: indexstate, isLoged
+          text, todos, isEditable, index: indexstate, isLoged, userId
         }, handleClickAdd, handleDelete, handleEdit ,
-        props: { navigation: { navigate }},
-
+        props: { navigation: { push }},
       } = this;   
       return (
       <>
@@ -107,15 +121,20 @@ class Todos extends React.Component {
           </View>
             <ScrollView >
           <View style={{marginTop: 30, marginBottom: 100, padding: 20}}>
-            {todos.map((item, index) => {           
-              return <View  style={[styles.twoButtons,{margin: 20}]}>
+
+            {/* map */}
+            {userId!==-1&&todos.map(({id, text, uid}, index) => {
+              console.log("item", todos);
+              
+              if (index !== 0 && uid === userId._55) {
+                return <View  style={[styles.twoButtons,{margin: 20}]}>
                {(isEditable&&indexstate=== index)?(
                <TextInput style={styles.editText}
                   placeholder="Edit todo"
-                  defaultValue={item}
+                  defaultValue={text}
                   onSubmitEditing={({ nativeEvent: { text }}) =>{
                     if (text) {
-                      handleEdit(index);
+                      handleEdit(id);
                     }
                   }}
                   onChangeText={(text) => {
@@ -123,7 +142,7 @@ class Todos extends React.Component {
                   }
                   }
                 />
-                ):(<><Text onPress={() => this.setState(prev => ({isEditable: !prev.isEditable, index}))} >{item}</Text></>)}
+                ):(<><Text onPress={() => this.setState(prev => ({isEditable: !prev.isEditable, index}))} >{text}</Text></>)}
                <View 
                style={{
                   flexDirection:"row",
@@ -132,7 +151,7 @@ class Todos extends React.Component {
                   justifyContent: "flex-start"
                }}>{(isEditable&&indexstate=== index)&&(
                <>
-               <TouchableOpacity  style={[styles.button, {backgroundColor: 'red'}]} title="Delete" onPress={() => handleDelete(index)}>
+               <TouchableOpacity  style={[styles.button, {backgroundColor: 'red'}]} title="Delete" onPress={() => handleDelete(id)}>
                   <Text style={[{color: 'white'}, styles.button]}>Delete</Text>
                </TouchableOpacity>
 
@@ -142,12 +161,14 @@ class Todos extends React.Component {
                </>)}
                </View>
              </View>
+              }   
+              
             })}
             </View>
             {isLoged&&
               <TouchableOpacity style={[styles.button, {backgroundColor: 'red'}]} color="gray" title="Edit" onPress={() => {
                 AsyncStorage.removeItem('userId');
-                navigate('Home')
+                push('Home')
                 }}>
                     <Text style={[{color: 'white', textAlign: 'center'}, styles.button]}>Logout</Text>
               </TouchableOpacity>

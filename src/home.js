@@ -3,10 +3,9 @@ import {
   SafeAreaView,
   StyleSheet,
   View,
-  TextInput,
   Text,
-  StatusBar,
-  Button
+  Button,
+  AsyncStorage
 } from 'react-native';
 
 class Home extends React.Component {
@@ -14,32 +13,44 @@ class Home extends React.Component {
     title: 'Home',
   };
     state = {
-      todos: [1, 2, 3],
-      text: '',
-      isEditable: false,
-      index: 0
+      isLoged: false,
     }
-    
+    async componentDidMount(){
+      const userId = await AsyncStorage.getItem("userId");    
+      if (userId) {
+        this.setState({isLoged: true});
+      } else {
+        this.setState({isLoged: false});
+      }
+    }
     render(){    
-      const { navigation: { navigate }} = this.props;    
+      const {
+        props: { navigation: { navigate }},
+        state: { isLoged }
+    } = this;    
       return (
       <>
         <SafeAreaView style={{margin: 25, flex: 1}}>
           <View style={{ alignItems :"center", padding: 5}}>
             <Text style={styles.title}>Welcome in to the Best Todo App</Text>
-            <View style={{ padding: 5}}>
-              <Button color="blue" onPress={() => navigate('Form', {
-                form: "login"
-              })} title="Login" />
-            </View>
-            <View style={{ padding: 5}}>
-              <Button color="red" onPress={() => navigate('Form', {
-                form: "register"
-              })} title="Register" />
-            </View>
+            {!isLoged?
+              <>
+                <View style={{ padding: 5}}>
+                <Button color="blue" onPress={() => navigate('Form', {
+                  form: "login"
+                })} title="Login" />
+                </View>
+               <View style={{ padding: 5}}>
+                <Button color="red" onPress={() => navigate('Form', {
+                  form: "register"
+                })} title="Register" />
+               </View>
+              </>
+            :
             <View style={{ padding: 5}}>
               <Button color="gray" onPress={() => navigate('Todos')} title="Go To Todo" />
             </View>
+            }
           </View>
         </SafeAreaView>
       </>
