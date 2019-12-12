@@ -22,7 +22,6 @@ class Todos extends React.Component {
     isEditable: false,
     index: 0,
     userId: -1,
-    isLoged: false,
   }
   getDataFromFireBase = (isEditable, index) => {
     const db = firebase.firestore();
@@ -52,8 +51,7 @@ class Todos extends React.Component {
         querySnapshot.forEach((doc) => {
             todos = [...todos, {id: doc.id ,...doc.data()}];
         });
-        return todos;
-    }).then((todos) => {
+
       if (userId) {
         this.setState({ isLoged: true, userId, todos })
       }
@@ -85,7 +83,6 @@ class Todos extends React.Component {
       db.collection("todos").doc(id).update({ text }).then(() => {
         console.log("Document successfully deleted!");
         this.getDataFromFireBase(false, -1);
-        AsyncStorage.removeItem('TODO');
       })
 
     }

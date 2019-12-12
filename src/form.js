@@ -21,10 +21,12 @@ class Form extends React.Component {
     isLoged: true,
   }
   async componentDidMount () {
-    const { props: { navigation: { navigate }} } = this;
+    const { props: { navigation: { push }} } = this;
     const userId = await AsyncStorage.getItem("userId");
     if (userId) {
-      navigate('Todos');
+      push('Todos', {
+        form: false
+      });
     } else {
       this.setState({isLoged: false});
     }
@@ -37,22 +39,22 @@ class Form extends React.Component {
 
   handleButton = async () => {
     const f = JSON.stringify(this.props.navigation);
-    const { state: { input: { email, password }}, props: { navigation: { navigate, state:{
+    const { state: { input: { email, password }}, props: { navigation: { push, state:{
       params: {
         form
       }
     }
-    }, loginOrSignup
+    }
   }
   } = this;
   try {
     if (form === "login") {
       const { user: { uid }} = await firebase.auth().signInWithEmailAndPassword(email, password);
       await AsyncStorage.setItem("userId", uid)
-      navigate('Todos');
+      push('Todos');
     } else {
       await firebase.auth().createUserWithEmailAndPassword(email, password);
-      navigate('Form', {
+      push('Form', {
         form: "login"
       });
     }    
