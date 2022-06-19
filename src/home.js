@@ -48,7 +48,7 @@ class Home extends React.Component {
               </>
             :
             <View style={{ padding: 5}}>
-              <Button color="gray" onPress={() => navigate('Todos')} title="Go To Todo" />
+              <Button color="gray" onPress={() => navigate('Todos')} title="Go into Todo" />
             </View>
             }
           </View>
